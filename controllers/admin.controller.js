@@ -84,14 +84,36 @@ exports.GetAdmins = async (req, res, next) => {
 
 exports.Assign = async (req, res, next) => {
   console.log(req.body, "Hello here");
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   try {
-    const user = await User.login(email, password, next);
+    // Find admin first
+    const findAdmin = await Admin.findOne({ email });
+    if (findAdmin) {
+      return next(
+        new ErrorResponse(`Admin already exists and ${findAdmin.role} assigned`, 400)
+      );
+    }
 
-    const token = createToken(user._id);
-    //sendResponseWithToken(res, 200, { success: true, data: user }, token);
-    return res.status(200).json({ status: true, data: user, token: token });
+    console.log("akt nn");
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+    console.log("inconstitute");
+
+    const newAdmin = new Admin({
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    await newAdmin.save();
+
+    console.log("jjks", newAdmin);
+    return res.status(200).json({
+      status: true,
+      data: newAdmin,
+      message: "Admin Created",
+    });
   } catch (err) {
     next(err);
   }
