@@ -250,7 +250,7 @@ exports.ResetPin = async (req, res, next) => {
  *
  */
 exports.Withdrawal = async (req, res, next) => {
-  const { _id, withdrawal_id, action } = req.body;
+  const { _id, withdrawal_id, action, amount } = req.body;
 
   try {
     console.log(req.body, "being activeeeeeee");
@@ -284,6 +284,7 @@ exports.Withdrawal = async (req, res, next) => {
           "withdrawalIssued.track_id": withdrawal_id,
         },
         {
+          $inc: { "balances.main_wallet": -amount },
           $set: {
             "withdrawalIssued.$.withrawal_requested": false,
             "withdrawalIssued.$.status": "failed",
