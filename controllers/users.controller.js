@@ -244,3 +244,91 @@ exports.ResetPin = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * this is to handle manual withdrawals
+ *
+ */
+exports.Withdrawal = async (req, res, next) => {
+  const { _id, withdrawal_id, action } = req.body;
+
+  try {
+    console.log(req.body, "being activeeeeeee");
+    let updateWithdrawal;
+
+    if (action === "approve") {
+      updateWithdrawal = await User.findOneAndUpdate(
+        {
+          _id: _id,
+          "withdrawalIssued.track_id": withdrawal_id,
+        },
+        {
+          $set: {
+            "withdrawalIssued.$.withrawal_requested": false,
+            "withdrawalIssued.$.status": "success",
+          },
+        },
+        { new: true }
+      );
+
+      //update transaction
+      await Transaction.findOneAndUpdate(
+        { track_id: withdrawal_id },
+        { $set: { status: "success" } },
+        { new: true }
+      );
+    } else {
+      updateWithdrawal = await User.findOneAndUpdate(
+        {
+          _id: _id,
+          "withdrawalIssued.track_id": withdrawal_id,
+        },
+        {
+          $set: {
+            "withdrawalIssued.$.withrawal_requested": false,
+            "withdrawalIssued.$.status": "failed",
+          },
+        },
+        { new: true }
+      );
+
+      //update transaction
+      await Transaction.findOneAndUpdate(
+        { track_id: withdrawal_id },
+        { $set: { status: "failed" } },
+        { new: true }
+      );
+    }
+
+    // console.log(ban, "reached");
+    if (updateWithdrawal)
+      res.status(200).json({
+        status: true,
+        data: updateWithdrawal,
+        message: "Users updated",
+      });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.UnBanUsers = async (req, res, next) => {
+  const { _id } = req.body;
+
+  try {
+    const unban = await User.findOneAndUpdate(
+      { _id: _id },
+      {
+        $set: { isActive: true },
+      },
+      { new: true }
+    );
+
+    if (unban)
+      res
+        .status(200)
+        .json({ status: true, data: unban, message: "user, activated" });
+  } catch (error) {
+    next(error);
+  }
+};

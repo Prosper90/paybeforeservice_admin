@@ -9,11 +9,27 @@ const BankSchema = mongoose.Schema({
   acc_Number: { type: String },
 });
 
-const balanceSchema = mongoose.Schema({
-  main_wallet: { type: Number },
-  pending_wallet: { type: Number },
-  refferal_wallet: { type: Number },
-});
+const balanceSchema = mongoose.Schema(
+  {
+    main_wallet: { type: Number },
+    pending_wallet: { type: Number },
+    refferal_wallet: { type: Number },
+  },
+  { _id: false } // Specify _id: false to prevent MongoDB from adding _id to the object
+);
+
+const withdrawSchema = mongoose.Schema(
+  {
+    withrawal_requested: { type: Boolean, default: true },
+    withdrawal_Amount: { type: Number },
+    bank_name: { type: String },
+    account_number: { type: String },
+    account_name: { type: String },
+    track_id: { type: String },
+    status: { type: String },
+  }
+  // { _id: false } // Specify _id: false to prevent MongoDB from adding _id to the object
+);
 
 const beneficiariesSchema = mongoose.Schema({
   bank_Name: { type: String },
@@ -30,11 +46,11 @@ const linkGenerated = mongoose.Schema({
   account_number: { type: String },
   bank_name: { type: String },
   created: { type: Date, default: Date.now() },
-  payment_recieved: { type: Date},
+  payment_recieved: { type: Date },
   expired: { type: Date },
   amount_created: { type: Number },
   amount_paid: { type: Number, default: 0 },
-  sender_mail: {type: String},
+  sender_mail: { type: String },
   redeemCode: { type: String },
   isPaid: { type: String, default: "pending" }, //has values --> complete, incomplete, pending, failed and expired
   incompletePaymentCount: { type: Number, default: 0 },
@@ -71,6 +87,7 @@ const userSchema = mongoose.Schema(
       validate: [isEmail, "Please enter a valid email"],
     },
     balances: balanceSchema,
+    withdrawalIssued: [withdrawSchema],
     password: {
       type: String,
       minlength: [8, "Minimum password length is 8 characters"],
@@ -107,59 +124,6 @@ const userSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Login method to verify user credentials
-// userSchema.statics.matchPassword = async function (password) {
-//   // const user = await this.findOne({ 'contact.email': email });
-//   // if (user) {
-//   //   const auth = await bcrypt.compare(password.toString(), user.pin);
-//   //   if (auth) {
-//   //     return user;
-//   //   }
-
-//   //   next();
-//   //}
-//   //next();
-//   //throw new Error('Incorrect email');
-
-//   return await bcrypt.compare(password, user.password);
-
-// };
-
-// static method to login user
-userSchema.statics.login = async function (email, password) {
-  const user = await this.findOne({ email: email }).select("+password");
-
-  if (!user) {
-    throw new ErrorResponse("incorrect email", 401);
-  }
-  // return next(new ErrorResponse("incorrect email", 401));
-  const auth = await bcrypt.compare(password, user.password);
-  if (!auth) {
-    throw new ErrorResponse("incorrect password", 401);
-  }
-  // return next(new ErrorResponse("incorrect password", 401));
-
-  return user;
-};
-
-//Method to handle recent transactions
-userSchema.pre("findOneAndUpdate", async function () {
-  const data = this.getQuery(); // Access the query to get the user data
-  const dataRecenttx = this.getUpdate();
-  const user = await this.model.findOne(data);
-  if (dataRecenttx.$push && dataRecenttx.$push.recent_transactions) {
-    if (user && user.recent_transactions) {
-      const maxLength = 5;
-      if (user.recent_transactions.length === maxLength) {
-        await this.model.updateOne(
-          { _id: user._id },
-          { $pop: { recent_transactions: -1 } }
-        );
-      }
-    }
-  }
-});
 
 userSchema.virtual("id").get(function () {
   return this._id.toHexString();

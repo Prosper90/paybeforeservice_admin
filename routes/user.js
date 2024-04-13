@@ -19,4 +19,6 @@ router.put("/reset_password", requireAuth, userController.ResetPassword);
 
 router.put("/reset_pin", requireAuth, userController.ResetPin);
 
+router.put("/handle_withdrawal", requireAuth, userController.Withdrawal);
+
 module.exports = router;
